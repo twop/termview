@@ -1146,7 +1146,6 @@ dependencies = [
 [[package]]
 name = "egui_term"
 version = "0.1.0"
-source = "git+https://github.com/kemokempo/egui_term?branch=main#31bbc7ab8503c9518fcee5717cfa29011e59f451"
 dependencies = [
  "alacritty_terminal",
  "anyhow",

@@ -21,3 +21,9 @@ tray-icon = "0.14.0"
 winit = "0.30"
 libc = "0.2"
 objc2 = "0.5.1"
+
+# Locally patched copy of egui_term (vendor/egui_term) with Kitty keyboard
+# protocol support added. The fork below is read-only to this project, so
+# fixes are vendored here instead of being pushed upstream.
+[patch."https://github.com/kemokempo/egui_term"]
+egui_term = { path = "vendor/egui_term" }
