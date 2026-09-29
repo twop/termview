@@ -544,7 +544,22 @@ impl eframe::App for TermViewApp {
                 };
 
                 let terminal_font = egui_term::TerminalFont::new(egui_term::FontSettings {
-                    font_type: egui::FontId::monospace(FONT_SIZE),
+                    font_type: egui::FontId::new(
+                        FONT_SIZE,
+                        egui::FontFamily::Name(crate::fonts::JETBRAINS_MONO_NERD.into()),
+                    ),
+                    bold: egui::FontId::new(
+                        FONT_SIZE,
+                        egui::FontFamily::Name(crate::fonts::JETBRAINS_MONO_NERD_BOLD.into()),
+                    ),
+                    italic: egui::FontId::new(
+                        FONT_SIZE,
+                        egui::FontFamily::Name(crate::fonts::JETBRAINS_MONO_NERD_ITALIC.into()),
+                    ),
+                    bold_italic: egui::FontId::new(
+                        FONT_SIZE,
+                        egui::FontFamily::Name(crate::fonts::JETBRAINS_MONO_NERD_BOLD_ITALIC.into()),
+                    ),
                 });
 
                 // Keep the terminal unfocused while the command palette is

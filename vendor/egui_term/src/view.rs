@@ -334,7 +334,7 @@ impl<'a> TerminalView<'a> {
                         },
                         Align2::CENTER_TOP,
                         indexed.c,
-                        self.font.font_type(),
+                        self.font.font_for_flags(flags),
                         fg,
                     )
                 }));
