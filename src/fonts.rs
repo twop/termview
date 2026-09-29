@@ -6,22 +6,24 @@
 // gives correct rendering at the cost of cramped rows, matching term_kick's choice.
 // Bold/italic/bold-italic are separate static instances of the same family (see
 // vendor/fonts.md) — egui has no font-weight/style synthesis of its own.
-
+//
+// Weights match this user's Alacritty config exactly: Thin for "normal",
+// Medium for "bold", ThinItalic/MediumItalic for their italic pairs.
 pub const JETBRAINS_MONO_NERD: &str = "jetbrains-mono-nerd";
 pub const JETBRAINS_MONO_NERD_BOLD: &str = "jetbrains-mono-nerd-bold";
 pub const JETBRAINS_MONO_NERD_ITALIC: &str = "jetbrains-mono-nerd-italic";
 pub const JETBRAINS_MONO_NERD_BOLD_ITALIC: &str = "jetbrains-mono-nerd-bold-italic";
 
-const REGULAR: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-Regular.ttf");
-const BOLD: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-Bold.ttf");
-const ITALIC: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-Italic.ttf");
-const BOLD_ITALIC: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-BoldItalic.ttf");
+const NORMAL: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-Thin.ttf");
+const BOLD: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-Medium.ttf");
+const ITALIC: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-ThinItalic.ttf");
+const BOLD_ITALIC: &[u8] = include_bytes!("../vendor/fonts/JetBrainsMonoNerdFont-MediumItalic.ttf");
 
 pub fn register_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
 
     for (name, bytes) in [
-        (JETBRAINS_MONO_NERD, REGULAR),
+        (JETBRAINS_MONO_NERD, NORMAL),
         (JETBRAINS_MONO_NERD_BOLD, BOLD),
         (JETBRAINS_MONO_NERD_ITALIC, ITALIC),
         (JETBRAINS_MONO_NERD_BOLD_ITALIC, BOLD_ITALIC),
