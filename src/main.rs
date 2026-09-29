@@ -1,12 +1,13 @@
 mod app;
 mod cli;
 mod client;
+mod config;
 mod daemon;
 mod fonts;
 mod grid_dump;
 mod ipc;
 mod macos;
-mod nord;
+mod palette;
 mod paths;
 mod report;
 mod session;

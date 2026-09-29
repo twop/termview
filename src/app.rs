@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
 
+use crate::config::{Config, KeyCombo};
 use crate::ipc::{DaemonRequest, DaemonResponse};
+use crate::palette::CommandPalette;
 use crate::session::Session;
-use crate::theme::SemanticColors;
+use crate::theme::LoadedTheme;
 use crate::tray::{Tray, TrayAction};
 
 const FONT_SIZE: f32 = 12.0;
-const PADDING: f32 = 4.0;
-const CORNER_RADIUS: u8 = 14;
 
 // egui needs one render cycle after a window becomes visible before a
 // Focus command reliably takes effect — see `pending_focus_frames`.
@@ -31,8 +31,12 @@ pub struct TermViewApp {
     ipc_rx: Receiver<(DaemonRequest, ReplyTx)>,
     tray: Tray,
     tray_rx: Receiver<TrayAction>,
-    theme: SemanticColors,
+    config: Config,
+    palette_shortcut: KeyCombo,
+    theme: LoadedTheme,
+    command_palette: CommandPalette,
     close_window_pressed: bool,
+    toggle_palette_pressed: bool,
     /// Frames remaining before a Focus command is sent, or `None` when idle.
     pending_focus_frames: Option<u32>,
     /// When the window was last shown, driving the fade/scale/slide-in. `None`
@@ -72,6 +76,10 @@ impl TermViewApp {
         let (ipc_tx, ipc_rx) = std::sync::mpsc::channel();
         crate::daemon::spawn_accept_loop(listener, ipc_tx, cc.egui_ctx.clone());
 
+        let config = Config::load();
+        let palette_shortcut = config.parsed_palette_shortcut();
+        let theme = LoadedTheme::load(&config.theme);
+
         Self {
             sessions: HashMap::new(),
             active_workspace: None,
@@ -81,8 +89,12 @@ impl TermViewApp {
             ipc_rx,
             tray,
             tray_rx,
-            theme: SemanticColors::nord(),
+            config,
+            palette_shortcut,
+            theme,
+            command_palette: CommandPalette::new(),
             close_window_pressed: false,
+            toggle_palette_pressed: false,
             pending_focus_frames: None,
             show_animation: None,
             currently_shown: false,
@@ -325,6 +337,26 @@ impl TermViewApp {
 
         self.hide_window(ctx);
     }
+
+    fn apply_palette_event(&mut self, event: crate::palette::PaletteEvent) {
+        use crate::palette::PaletteEvent;
+        match event {
+            PaletteEvent::None => {}
+            PaletteEvent::Preview(name) => {
+                self.theme = LoadedTheme::load(&name);
+            }
+            PaletteEvent::Commit(name) => {
+                self.config.theme = name.clone();
+                if let Err(err) = self.config.save() {
+                    eprintln!("termview: failed to save config: {err}");
+                }
+                self.theme = LoadedTheme::load(&name);
+            }
+            PaletteEvent::Cancel(name) => {
+                self.theme = LoadedTheme::load(&name);
+            }
+        }
+    }
 }
 
 impl eframe::App for TermViewApp {
@@ -333,24 +365,32 @@ impl eframe::App for TermViewApp {
     }
 
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
-        let mut triggered = false;
+        let mut close_triggered = false;
+        let mut palette_triggered = false;
         raw_input.events.retain(|event| {
             if let egui::Event::Key {
-                key: egui::Key::W,
+                key,
                 pressed: true,
                 modifiers,
                 ..
             } = event
             {
-                if modifiers.mac_cmd {
-                    triggered = true;
+                if *key == egui::Key::W && modifiers.mac_cmd {
+                    close_triggered = true;
+                    return false;
+                }
+                if self.palette_shortcut.matches(*key, modifiers) {
+                    palette_triggered = true;
                     return false;
                 }
             }
             true
         });
-        if triggered {
+        if close_triggered {
             self.close_window_pressed = true;
+        }
+        if palette_triggered {
+            self.toggle_palette_pressed = true;
         }
 
         // egui_term's TerminalView only forwards keyboard events when the
@@ -390,6 +430,12 @@ impl eframe::App for TermViewApp {
         if self.close_window_pressed {
             self.close_window_pressed = false;
             self.handle_close_window(ctx);
+        }
+
+        if self.toggle_palette_pressed {
+            self.toggle_palette_pressed = false;
+            let event = self.command_palette.toggle(&self.config.theme);
+            self.apply_palette_event(event);
         }
 
         if let Some(remaining) = self.pending_focus_frames {
@@ -456,10 +502,10 @@ impl eframe::App for TermViewApp {
         egui::CentralPanel::default()
             .frame(
                 egui::Frame::new()
-                    .inner_margin(PADDING)
-                    .corner_radius(CORNER_RADIUS)
-                    .fill(self.theme.background)
-                    .stroke(egui::Stroke::new(1.0, self.theme.border)),
+                    .inner_margin(self.config.padding)
+                    .corner_radius(self.config.corner_radius)
+                    .fill(self.theme.semantic.background)
+                    .stroke(egui::Stroke::new(1.0, self.theme.semantic.border)),
             )
             .show(ui, |ui| {
                 let Some(workspace) = self.active_workspace.clone() else {
@@ -473,14 +519,23 @@ impl eframe::App for TermViewApp {
                     font_type: egui::FontId::monospace(FONT_SIZE),
                 });
 
+                // Keep the terminal unfocused while the command palette is
+                // open: egui_term forwards keystrokes to the shell whenever
+                // the pointer merely hovers it (see the pointer-injection
+                // comment in raw_input_hook above), so leaving it focused
+                // here would leak typed characters into the shell
+                // underneath the palette's own search box.
                 let terminal = egui_term::TerminalView::new(ui, &mut session.backend)
-                    .set_focus(true)
+                    .set_focus(!self.command_palette.is_open())
                     .set_font(terminal_font)
                     .set_theme(self.theme.terminal_theme())
                     .set_size(ui.available_size());
 
                 ui.add(terminal);
             });
+
+        let palette_event = self.command_palette.show(ui.ctx(), &self.theme.palette);
+        self.apply_palette_event(palette_event);
 
         if let Some(progress) = animation_progress {
             let shapes_end = ctx.graphics_mut(|g| g.entry(layer_id).next_idx());

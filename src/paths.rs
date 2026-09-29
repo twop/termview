@@ -12,3 +12,20 @@ pub fn expand_tilde(path: &str) -> std::path::PathBuf {
     }
     std::path::PathBuf::from(path)
 }
+
+pub fn config_dir() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    std::path::PathBuf::from(home).join(".config/termview")
+}
+
+pub fn config_file_path() -> std::path::PathBuf {
+    config_dir().join("config.toml")
+}
+
+pub fn themes_dir() -> std::path::PathBuf {
+    config_dir().join("themes")
+}
+
+pub fn theme_file_path(name: &str) -> std::path::PathBuf {
+    themes_dir().join(format!("{name}.toml"))
+}

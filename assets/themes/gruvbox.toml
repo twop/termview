@@ -1,0 +1,32 @@
+# Seed "gruvbox" theme for termview. See vendor/themes.md for the derivation
+# (from alacritty/alacritty-theme's gruvbox_dark.toml, matching the
+# "# neutral" / "# bright" pairs in Helix's own gruvbox.toml palette).
+
+foreground = "#ebdbb2"
+background = "#282828"
+black = "#282828"
+red = "#cc241d"
+green = "#98971a"
+yellow = "#d79921"
+blue = "#458588"
+magenta = "#b16286"
+cyan = "#689d6a"
+white = "#a89984"
+bright_black = "#928374"
+bright_red = "#fb4934"
+bright_green = "#b8bb26"
+bright_yellow = "#fabd2f"
+bright_blue = "#83a598"
+bright_magenta = "#d3869b"
+bright_cyan = "#8ec07c"
+bright_white = "#ebdbb2"
+dim_foreground = "#ebdbb2"
+dim_black = "#282828"
+dim_red = "#cc241d"
+dim_green = "#98971a"
+dim_yellow = "#d79921"
+dim_blue = "#458588"
+dim_magenta = "#b16286"
+dim_cyan = "#689d6a"
+dim_white = "#ebdbb2"
+# bright_foreground intentionally omitted -> falls back to `foreground`.
