@@ -18,6 +18,7 @@ fn run_open(args: OpenArgs) -> ExitCode {
     let request = DaemonRequest::Open {
         workspace: args.workspace,
         command_string: args.command_string,
+        shell: args.shell,
         report: args.report,
         persistent: args.persistent,
         width: args.width,

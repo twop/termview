@@ -21,12 +21,20 @@ pub enum Command {
 #[derive(Parser, Debug, Clone)]
 pub struct OpenArgs {
     /// The command to run, as a single shell-quoted string, e.g. "yazi ~/projects".
-    pub command_string: String,
+    /// Always run directly (never wrapped in a shell). When omitted, opens an
+    /// interactive session in the resolved shell instead (see --shell).
+    pub command_string: Option<String>,
 
     /// Workspace name — identifies this session. Reusing a workspace with the same
     /// command reattaches to the existing session; a different command restarts it.
     #[arg(short, long)]
     pub workspace: String,
+
+    /// Shell to use when command_string is omitted, e.g. "nu". Overrides
+    /// config.toml's `shell` for this invocation. Falls back to config.toml's
+    /// `shell`, then $SHELL, then /bin/zsh when unset.
+    #[arg(long)]
+    pub shell: Option<String>,
 
     /// URL template fired via `open` when the program exits on its own. `{stdout}`
     /// is replaced with the (URL-encoded) final on-screen terminal text.

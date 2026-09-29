@@ -6,7 +6,8 @@ use std::path::PathBuf;
 pub enum DaemonRequest {
     Open {
         workspace: String,
-        command_string: String,
+        command_string: Option<String>,
+        shell: Option<String>,
         report: Option<String>,
         persistent: bool,
         width: Option<u32>,

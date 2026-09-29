@@ -77,6 +77,24 @@ impl TermViewApp {
         crate::daemon::spawn_accept_loop(listener, ipc_tx, cc.egui_ctx.clone());
 
         let config = Config::load();
+
+        // One-time daemon startup: match what a real terminal emulator does
+        // for its children. `setup_env` sets TERM/COLORTERM (same call the
+        // real Alacritty app makes before creating any windows) so apps like
+        // Helix render colors correctly instead of falling back to whatever
+        // TERM happened to already be in the daemon's environment. The
+        // shell-env capture fixes the daemon's own environment being
+        // whatever minimal one first launched it (e.g. a login item/launcher
+        // rather than an interactive shell) by sourcing the configured
+        // shell's login config once and merging the result in — every PTY
+        // child spawned afterward inherits it, since nothing in this
+        // dependency chain clears the child's environment.
+        alacritty_terminal::tty::setup_env();
+        crate::config::capture_and_merge_shell_env(&crate::config::resolve_shell(
+            None,
+            &config.shell,
+        ));
+
         let palette_shortcut = config.parsed_palette_shortcut();
         let theme = LoadedTheme::load(&config.theme);
 
@@ -153,13 +171,21 @@ impl TermViewApp {
         &mut self,
         ctx: &egui::Context,
         workspace: String,
-        command_string: String,
+        command_string: Option<String>,
+        shell: Option<String>,
         report: Option<String>,
         persistent: bool,
         width: Option<u32>,
         height: Option<u32>,
         cwd: Option<String>,
     ) -> DaemonResponse {
+        // Explicit commands always run directly (raw, never shell-wrapped).
+        // No command means "just give me an interactive shell" - resolved
+        // from --shell, then config.toml's `shell`, then $SHELL.
+        let command_string = command_string.unwrap_or_else(|| {
+            crate::config::resolve_shell(shell.as_deref(), &self.config.shell)
+        });
+
         let parts = match shell_words::split(&command_string) {
             Ok(parts) if !parts.is_empty() => parts,
             Ok(_) => return DaemonResponse::Err("empty command".to_string()),
@@ -236,6 +262,7 @@ impl TermViewApp {
             DaemonRequest::Open {
                 workspace,
                 command_string,
+                shell,
                 report,
                 persistent,
                 width,
@@ -246,6 +273,7 @@ impl TermViewApp {
                     ctx,
                     workspace,
                     command_string,
+                    shell,
                     report,
                     persistent,
                     width,
